@@ -9,6 +9,12 @@ export interface Transpiler {
   run<T>(path: string, code: string, baseContext: any): T
 }
 
+export function registerTranspiler(transpiler: Transpiler) {
+  if (!transpilers.find(t => t.constructor === transpiler.constructor)) {
+    transpilers.push(transpiler)
+  }
+}
+
 export class JsonTranspiler implements Transpiler {
   public check(path: string): boolean {
     return extname(path).toLocaleLowerCase() === '.json'
@@ -39,7 +45,6 @@ export class JsTranspiler implements Transpiler {
         __filename: path,
         console,
         process,
-        Buffer,
         exports: {},
       })
     )
@@ -47,3 +52,6 @@ export class JsTranspiler implements Transpiler {
     return context.exports
   }
 }
+
+registerTranspiler(new JsonTranspiler())
+registerTranspiler(new JsTranspiler())
