@@ -30,6 +30,8 @@ export class Metadata {
 
   private createdAt = Date.now()
 
+  private dependencies: string[] = []
+
   constructor(public readonly path: string, private readonly lastModified: number, private readonly maxAge = -1) {
   }
 
@@ -66,17 +68,24 @@ export class Metadata {
   public isModifiedSync(): boolean {
     try {
       // cahce expired
-      if (this.maxAge !== -1) return Date.now() > this.createdAt + this.maxAge
+      if (this.maxAge !== -1 && Date.now() > this.createdAt + this.maxAge) return true
 
       // file modified
       const lastModified = lstatSync(this.path).mtime.getDate()
-      return lastModified !== this.lastModified
+      if (lastModified !== this.lastModified) return true
     }
     catch (e) {
       // virtual file
       const maxAge = this.maxAge === -1 ? DEFAULT_MAX_AGE : this.maxAge
-      return Date.now() > this.createdAt + maxAge
+      if (Date.now() > this.createdAt + maxAge) return true
     }
+
+    // dependency modified
+    for (const path of this.dependencies) {
+      if (!getSync(path)) return true
+    }
+
+    return false
   }
 
   public async isModifiedAsync(): Promise<boolean> {
@@ -88,23 +97,35 @@ export class Metadata {
 
     try {
       // cache expired
-      if (this.maxAge !== -1) return Date.now() > this.createdAt + this.maxAge
+      if (this.maxAge !== -1 && Date.now() > this.createdAt + this.maxAge) return true
 
       // file modified
       const lastModified = (await lstatP(this.path)).mtime.getDate()
-      return lastModified !== this.lastModified
+      if (lastModified !== this.lastModified) return true
     }
     catch (e) {
       // virtual file
       const maxAge = this.maxAge === -1 ? DEFAULT_MAX_AGE : this.maxAge
-      return Date.now() > this.createdAt + maxAge
+      if (Date.now() > this.createdAt + maxAge) return true
     }
+
+    // dependency modified
+    for (const path of this.dependencies) {
+      if (!await getAsync(path)) return true
+    }
+
+    return false
+  }
+
+  public depend(path: string, metadata: Metadata) {
+    this.dependencies.push(path)
+    set(path, metadata)
   }
 
   public get length(): number {
-    let length = 1 /* tranpiled */ + 1 /* processed */ + 8 /* lastModified */ + this.path.length
+    let length = 1 /* tranpiled */ + 1 /* processed */ + 8 /* lastModified */ + 8 /* createdAt */ + 8 /* maxAge */ + this.path.length
     if (this.cache) length += typeof this.cache === 'string' ? this.cache.length : 16000 // 16KB
-    // dependencies
+    length += this.dependencies.reduce((r, p) => r + p.length, 0)
     return length
   }
 }
@@ -128,10 +149,7 @@ export async function getAsync(path: string): Promise<Metadata | undefined> {
 }
 
 export function set(path: string, metadata: Metadata) {
-  if (enabled) {
-    if (cache.has(path)) cache.del(path)
-    cache.set(path, metadata)
-  }
+  if (enabled) cache.set(path, metadata)
 }
 
 // default cache
