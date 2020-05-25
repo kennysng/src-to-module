@@ -35,7 +35,7 @@ export class Metadata {
   constructor(public readonly path: string, private readonly lastModified: number, private readonly maxAge = -1) {
   }
 
-  public set(type: 'source'|'transpiled'|'module', cache: any) {
+  public set(type: 'source' | 'transpiled' | 'module', cache: any) {
     switch (type) {
       case 'source':
         this.transpiled = false
@@ -68,7 +68,7 @@ export class Metadata {
   public isModifiedSync(): boolean {
     try {
       // cahce expired
-      if (this.maxAge !== -1 && Date.now() > this.createdAt + this.maxAge) return true
+      if (this.maxAge !== -1) throw new Error('FALLBACK')
 
       // file modified
       const lastModified = lstatSync(this.path).mtime.getDate()
@@ -78,11 +78,6 @@ export class Metadata {
       // virtual file
       const maxAge = this.maxAge === -1 ? DEFAULT_MAX_AGE : this.maxAge
       if (Date.now() > this.createdAt + maxAge) return true
-    }
-
-    // dependency modified
-    for (const path of this.dependencies) {
-      if (!getSync(path)) return true
     }
 
     return false
@@ -97,7 +92,7 @@ export class Metadata {
 
     try {
       // cache expired
-      if (this.maxAge !== -1 && Date.now() > this.createdAt + this.maxAge) return true
+      if (this.maxAge !== -1) throw new Error('FALLBACK')
 
       // file modified
       const lastModified = (await lstatP(this.path)).mtime.getDate()
@@ -109,11 +104,20 @@ export class Metadata {
       if (Date.now() > this.createdAt + maxAge) return true
     }
 
-    // dependency modified
-    for (const path of this.dependencies) {
-      if (!await getAsync(path)) return true
-    }
+    return false
+  }
 
+  public isDependencyModifiedSync(): boolean {
+    for (const p of this.dependencies) {
+      if (!getSync(p)) return true
+    }
+    return false
+  }
+
+  public async isDependencyModifiedAsync(): Promise<boolean> {
+    for (const p of this.dependencies) {
+      if (!await getAsync(p)) return true
+    }
     return false
   }
 

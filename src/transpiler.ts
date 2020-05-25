@@ -15,6 +15,10 @@ export function registerTranspiler(transpiler: Transpiler) {
   }
 }
 
+export function getTranspiler(path: string) {
+  return transpilers.find(t => t.check(path))
+}
+
 export class JsonTranspiler implements Transpiler {
   public check(path: string): boolean {
     return extname(path).toLocaleLowerCase() === '.json'
