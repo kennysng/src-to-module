@@ -137,7 +137,7 @@ export class Metadata {
 
 export function setCacheOptions(options: Options<string, Metadata>, clear = false) {
   const newCache = new LruCache(options)
-  if (!clear) newCache.load(cache.dump())
+  if (!clear && cache) newCache.load(cache.dump())
   cache = newCache
 }
 
