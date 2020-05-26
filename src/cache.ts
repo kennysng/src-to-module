@@ -121,9 +121,10 @@ export class Metadata {
     return false
   }
 
-  public depend(path: string, metadata: Metadata) {
-    this.dependencies.push(path)
-    set(path, metadata)
+  public depend(path: string) {
+    if (this.dependencies.indexOf(path) === -1) {
+      this.dependencies.push(path)
+    }
   }
 
   public get length(): number {

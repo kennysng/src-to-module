@@ -105,8 +105,7 @@ function runSync_<T>(noCache: boolean, code: string, filepath: string, baseConte
           }
   
           // from file system
-          filepath = target.resolve(filepath)
-          // TODO depend
+          (metadata as Metadata).depend(filepath = target.resolve(filepath))
           return requireSync(filepath, baseContext)
         },
       }),
