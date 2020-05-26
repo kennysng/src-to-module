@@ -40,7 +40,7 @@ export function runSync<T>(code: string, filepath: string, baseContext: any = {}
   return runSync_(false, code, filepath, baseContext)
 }
 
-function resolvePath(filepath: string): string {
+export function resolvePath(filepath: string): string {
   // resolve relative path
   if (!isAbsolute(filepath)) filepath = resolve(__dirname, filepath)
 
@@ -93,22 +93,19 @@ function runSync_<T>(noCache: boolean, code: string, filepath: string, baseConte
 
     // run code
     code = metadata.transpiledCode() as string
+    const newRequire = Module.createRequire(filepath)
     metadata.set('module', transpiler.run(filepath, code, {
       ...baseContext,
-      require: new Proxy(Module.createRequire(filepath), {
-        apply(target: NodeRequire, thisArg: any, argArray: any[]) {
-          let filepath = argArray[0] as string
-          
-          // from node_modules
-          if (!isAbsolute(filepath) && !filepath.startsWith('.')) {
-            return require(filepath)
-          }
-  
-          // from file system
-          (metadata as Metadata).depend(filepath = target.resolve(filepath))
-          return requireSync(filepath, baseContext)
-        },
-      }),
+      require: function<R>(filepath: string): R {
+        // from node_modules
+        if (!isAbsolute(filepath) && !filepath.startsWith('.')) {
+          return require(filepath)
+        }
+
+        // from file system
+        (metadata as Metadata).depend(filepath = newRequire.resolve(filepath))
+        return requireSync<R>(filepath, baseContext)
+      },
     }))
   }
 
