@@ -62,7 +62,7 @@ export class Metadata {
   }
 
   public module<T>(): T | undefined {
-    return this.transpiled && this.processed && typeof this.cache === 'object' ? this.cache : undefined
+    return this.transpiled && this.processed ? this.cache : undefined
   }
 
   public isModifiedSync(): boolean {
