@@ -1,8 +1,10 @@
 import LruCache, { Options } from 'lru-cache'
 import { lstat, lstatSync, Stats } from 'fs'
 import debug from 'debug'
+import pretty from 'pretty-bytes'
 
 const log = debug('cache')
+const sizeLog = debug('cache-size')
 
 let enabled = true
 
@@ -59,7 +61,6 @@ export class Metadata {
         this.processed = true
         break
     }
-    log('set %s for "%s"', type, this.path)
     this.cache = cache
     set(this.path, this)
   }
@@ -184,7 +185,7 @@ export function set(path: string, metadata: Metadata) {
   if (enabled) {
     if (!CACHE.has(path)) log('cache "%s"', path)
     CACHE.set(path, metadata)
-    log('cache size: %d b', CACHE.length)
+    sizeLog('estimated cache size: %s', pretty(CACHE.length))
   }
 }
 
