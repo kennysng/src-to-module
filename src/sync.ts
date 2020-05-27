@@ -96,7 +96,7 @@ function runSync_<T>(noCache: boolean, code: string, filepath: string, baseConte
     if (noCache || !metadata.module() || metadata.isDependencyModifiedSync()) {
       // no transpiled code
       if (!metadata.transpiledCode()) {
-        metadata.set('transpiled', transpiler.transpile(code))
+        metadata.set('transpiled', transpiler.transpile(filepath, code))
       }
 
       // run code

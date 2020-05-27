@@ -6,7 +6,7 @@ const transpilers: Transpiler[] = []
 
 export interface Transpiler {
   check(path: string): boolean
-  transpile(code: string): string
+  transpile(path: string, code: string): string
   run<T>(path: string, code: string, require: NodeRequire, baseContext: any): T | undefined
   runAsync<T>(path: string, code: string, require: NodeRequire, baseContext: any): Promise<T | undefined>
 }
@@ -26,7 +26,7 @@ export class JsonTranspiler implements Transpiler {
     return extname(path).toLocaleLowerCase() === '.json'
   }
 
-  public transpile(code: string): string {
+  public transpile(path: string, code: string): string {
     return code
   }
 
@@ -44,7 +44,7 @@ export class JsTranspiler implements Transpiler {
     return extname(path).toLocaleLowerCase() === '.js'
   }
 
-  public transpile(code: string): string {
+  public transpile(path: string, code: string): string {
     return code
   }
 

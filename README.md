@@ -65,7 +65,7 @@ interface Transpiler {
   check(path: string): boolean
 
   // transpile the code to, possibly, JavaScript
-  transpile(code: string): string
+  transpile(path: string, code: string): string
 
   // run the transpiled code
   // you should use the one declared in JsTranspiler

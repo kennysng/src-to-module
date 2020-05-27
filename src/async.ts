@@ -96,7 +96,7 @@ async function runAsync_<T>(noCache: boolean, code: string, filepath: string, ba
     if (noCache || !metadata.module() || await metadata.isDependencyModifiedAsync()) {
       // no transpiled code
       if (!metadata.transpiledCode()) {
-        metadata.set('transpiled', transpiler.transpile(code))
+        metadata.set('transpiled', transpiler.transpile(filepath, code))
       }
 
       // run code
