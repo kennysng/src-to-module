@@ -1,11 +1,11 @@
 {
   "name": "src-to-module",
-  "version": "1.0.0",
+  "version": "1.0.0-rc.1",
   "description": "Convert source code to module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
-    "test": "jest",
+    "test": "DEBUG=* jest",
     "lint": "tslint -p tsconfig.json",
     "build": "tsc -p tsconfig.json",
     "prepublishOnly": "npm run build",
@@ -34,7 +34,9 @@
     "typescript": "^3.8.2"
   },
   "dependencies": {
+    "@types/debug": "^4.1.5",
     "@types/lru-cache": "^5.1.0",
+    "debug": "^4.1.1",
     "lru-cache": "^5.1.1"
   }
 }

@@ -3,6 +3,9 @@ import { lstatSync, readFileSync } from 'fs'
 import { extname, isAbsolute, resolve } from 'path'
 import { Module } from 'module'
 import { getTranspiler } from './transpiler'
+import debug from 'debug'
+
+const log = debug('sync')
 
 export function requireSync<T>(filepath: string, baseContext: any = {}): T {
   // resolve file path
@@ -31,6 +34,9 @@ export function requireSync<T>(filepath: string, baseContext: any = {}): T {
     const code = metadata.sourceCode() as string
     metadata.set('module', runSync_(true, code, filepath, baseContext))
   }
+  else {
+    log('require "%s" from cache', filepath)
+  }
 
   // return cache
   return metadata.module() as T
@@ -54,62 +60,71 @@ export function resolvePath(filepath: string): string {
 }
 
 function runSync_<T>(noCache: boolean, code: string, filepath: string, baseContext: any): T {
-  // resolve file path
-  filepath = resolvePath(filepath)
-
-  // get transpiler
-  const transpiler = getTranspiler(filepath)
-  if (!transpiler) {
-    const ext = extname(filepath)
-    throw new Error(ext ? `'${extname(filepath)}' file not supported` : `file must have extension: '${filepath}'`)
-  }
-
-  // from cache
-  let metadata = getSync(filepath)
-
-  // get last modified time
-  let mtime = 0
+  const start = Date.now()
   try {
-    const stat = lstatSync(filepath)
-    if (!stat.isFile()) throw new Error(`'${filepath}' is not a file`)
-    mtime = stat.mtime.getDate()
-  }
-  catch (e) {
-    // virtual file
-  }
+    // resolve file path
+    filepath = resolvePath(filepath)
 
-  // create metadata
-  if (!metadata) {
-    set(filepath, metadata = new Metadata(filepath, mtime))
-    metadata.set('source', code)
-  }
-
-  // no cache, or dependency modified
-  if (noCache || !metadata.module() || metadata.isDependencyModifiedSync()) {
-    // no transpiled code
-    if (!metadata.transpiledCode()) {
-      metadata.set('transpiled', transpiler.transpile(code))
+    // get transpiler
+    const transpiler = getTranspiler(filepath)
+    if (!transpiler) {
+      const ext = extname(filepath)
+      throw new Error(ext ? `'${extname(filepath)}' file not supported` : `file must have extension: '${filepath}'`)
     }
 
-    // run code
-    code = metadata.transpiledCode() as string
-    const newRequire = new Proxy(Module.createRequire(filepath), {
-      apply(target: NodeRequire, thisArg: any, argArray: any[]) {
-        let filepath = argArray[0] as string
-        
-        // from node_modules
-        if (!isAbsolute(filepath) && !filepath.startsWith('.')) {
-          return require(filepath)
-        }
+    // from cache
+    let metadata = getSync(filepath)
 
-        // from file system
-        (metadata as Metadata).depend(filepath = target.resolve(filepath))
-        return requireSync(filepath, baseContext)
-      },
-    })
-    metadata.set('module', transpiler.run<T>(filepath, code, newRequire, { ...baseContext }))
+    // get last modified time
+    let mtime = 0
+    try {
+      const stat = lstatSync(filepath)
+      if (!stat.isFile()) throw new Error(`'${filepath}' is not a file`)
+      mtime = stat.mtime.getDate()
+    }
+    catch (e) {
+      // virtual file
+    }
+
+    // create metadata
+    if (!metadata) {
+      set(filepath, metadata = new Metadata(filepath, mtime))
+      metadata.set('source', code)
+    }
+
+    // no cache, or dependency modified
+    if (noCache || !metadata.module() || metadata.isDependencyModifiedSync()) {
+      // no transpiled code
+      if (!metadata.transpiledCode()) {
+        metadata.set('transpiled', transpiler.transpile(code))
+      }
+
+      // run code
+      code = metadata.transpiledCode() as string
+      const newRequire = new Proxy(Module.createRequire(filepath), {
+        apply(target: NodeRequire, thisArg: any, argArray: any[]) {
+          let filepath = argArray[0] as string
+          
+          // from node_modules
+          if (!isAbsolute(filepath) && !filepath.startsWith('.')) {
+            return require(filepath)
+          }
+
+          // from file system
+          (metadata as Metadata).depend(filepath = target.resolve(filepath))
+          return requireSync(filepath, baseContext)
+        },
+      })
+      metadata.set('module', transpiler.run<T>(filepath, code, newRequire, { ...baseContext }))
+    }
+    else {
+      log('run "%s" from cache', filepath)
+    }
+
+    // return cache
+    return metadata.module() as T
   }
-
-  // return cache
-  return metadata.module() as T
+  finally {
+    log('run "%s" elapsed: %d ms', filepath, Date.now() - start)
+  }
 }

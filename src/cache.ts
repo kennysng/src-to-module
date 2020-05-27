@@ -1,22 +1,31 @@
 import LruCache, { Options } from 'lru-cache'
 import { lstat, lstatSync, Stats } from 'fs'
+import debug from 'debug'
+
+const log = debug('cache')
 
 let enabled = true
 
 export function enableCache() {
   enabled = true
+  log('cache enabled')
 }
 
 export function disableCache(clear = false) {
   enabled = false
-  if (clear) cache.reset()
+  log('cache disabled')
+  if (clear) {
+    CACHE.reset()
+    log('cache cleared')
+  }
 }
 
 export function invalidateCache() {
-  cache.reset()
+  CACHE.reset()
+  log('cache reset')
 }
 
-let cache: LruCache<string, Metadata>
+let CACHE: LruCache<string, Metadata>
 
 const DEFAULT_MAX_AGE = 30 * 60 * 1000
 
@@ -50,7 +59,9 @@ export class Metadata {
         this.processed = true
         break
     }
+    log('set %s for "%s"', type, this.path)
     this.cache = cache
+    set(this.path, this)
   }
 
   public sourceCode(): string | undefined {
@@ -129,7 +140,23 @@ export class Metadata {
 
   public get length(): number {
     let length = 1 /* tranpiled */ + 1 /* processed */ + 8 /* lastModified */ + 8 /* createdAt */ + 8 /* maxAge */ + this.path.length
-    if (this.cache) length += typeof this.cache === 'string' ? this.cache.length : 16000 // 16KB
+    if (this.cache) {
+      switch (typeof this.cache) {
+        case 'string':
+          length += this.cache.length
+          break
+        case 'number':
+        case 'bigint':
+          length += 8
+          break
+        case 'undefined':
+        case 'boolean':
+          length += 1
+          break
+        default:
+          length += 16000 // 16KB
+      }
+    }
     length += this.dependencies.reduce((r, p) => r + p.length, 0)
     return length
   }
@@ -137,30 +164,32 @@ export class Metadata {
 
 export function setCacheOptions(options: Options<string, Metadata>, clear = false) {
   const newCache = new LruCache(options)
-  if (!clear && cache) newCache.load(cache.dump())
-  cache = newCache
+  if (!clear && CACHE) newCache.load(CACHE.dump())
+  CACHE = newCache
 }
 
 export function getSync(path: string): Metadata | undefined {
   if (!enabled) return undefined
-  const metadata = cache.get(path)
+  const metadata = CACHE.get(path)
   return !metadata || metadata.isModifiedSync() ? undefined : metadata
 }
 
 export async function getAsync(path: string): Promise<Metadata | undefined> {
   if (!enabled) return undefined
-  const metadata = cache.get(path)
+  const metadata = CACHE.get(path)
   return !metadata || await metadata.isModifiedAsync() ? undefined : metadata
 }
 
 export function set(path: string, metadata: Metadata) {
-  if (enabled) cache.set(path, metadata)
+  if (enabled) {
+    if (!CACHE.has(path)) log('cache "%s"', path)
+    CACHE.set(path, metadata)
+    log('cache size: %d b', CACHE.length)
+  }
 }
 
 // default cache
 setCacheOptions({
   max: 64000000, // 64MB
-  length: (metadata, key = '') => {
-    return metadata.length + key.length
-  }
+  length: (metadata, key = '') => metadata.length + key.length
 })
