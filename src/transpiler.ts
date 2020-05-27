@@ -74,6 +74,7 @@ export class JsTranspiler implements Transpiler {
   }
 
   public async runAsync<T>(path: string, code: string, require: NodeRequire, baseContext: any = {}): Promise<T | undefined> {
+    if (code.startsWith('(async')) code = 'await ' + code
     code = '(async ' + Module.wrap(code).substr(1)
     const context = createContext(Object.assign({}, baseContext, { console, process }))
     const func = new Script(code, { filename: path }).runInContext(context)

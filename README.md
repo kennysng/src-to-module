@@ -36,7 +36,12 @@ When `clear = true`, the existing cache will not be inherited.
 
 Load modules from file.  
 When a positive `maxAge` is provided, the cache will be expired after `Date.now() + maxAge`.  
-Note that `maxAge` will not be applied if a cache for this file already exists. 
+Note that `maxAge` will not be applied if a cache for this file already exists.  
+  
+In case you are using `requireAsync`, there will be a `requireAsync` function in global context of the processed file.  
+Due to the fact that using `await` without `async` will result to syntax error, you must wrap your code inside `(async () => { ... })`.  
+  
+Please check the [example](test/async.js). 
 
 ----
 
