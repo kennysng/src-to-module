@@ -20,7 +20,7 @@ function readFileP(filepath: string): Promise<string> {
   })
 }
 
-export async function requireAsync<T>(filepath: string, baseContext: any = {}): Promise<T> {
+export async function requireAsync<T>(filepath: string, baseContext: any = {}, maxAge?: number): Promise<T> {
   // resolve file path
   filepath = resolvePath(filepath)
 
@@ -33,7 +33,7 @@ export async function requireAsync<T>(filepath: string, baseContext: any = {}): 
 
   // create metadata
   if (!metadata) {
-    set(filepath, metadata = new Metadata(filepath, stat.mtime.getDate()))
+    set(filepath, metadata = new Metadata(filepath, stat.mtime.getDate(), maxAge))
   }
 
   // no cache, or dependency modified
@@ -45,7 +45,7 @@ export async function requireAsync<T>(filepath: string, baseContext: any = {}): 
 
     // run code
     const code = metadata.sourceCode() as string
-    metadata.set('module', await runAsync_(true, code, filepath, baseContext))
+    metadata.set('module', await runAsync_(true, code, filepath, baseContext, maxAge))
   }
   else {
     log('require "%s" from cache', filepath)
@@ -55,11 +55,11 @@ export async function requireAsync<T>(filepath: string, baseContext: any = {}): 
   return metadata.module() as T
 }
 
-export async function runAsync<T>(code: string, filepath: string, baseContext: any = {}): Promise<T> {
-  return await runAsync_(false, code, filepath, baseContext)
+export async function runAsync<T>(code: string, filepath: string, baseContext: any = {}, maxAge?: number): Promise<T> {
+  return await runAsync_(false, code, filepath, baseContext, maxAge)
 }
 
-async function runAsync_<T>(noCache: boolean, code: string, filepath: string, baseContext: any): Promise<T> {
+async function runAsync_<T>(noCache: boolean, code: string, filepath: string, baseContext: any, maxAge?: number): Promise<T> {
   const start = Date.now()
   try {
     // resolve file path
@@ -88,7 +88,7 @@ async function runAsync_<T>(noCache: boolean, code: string, filepath: string, ba
 
     // create metadata
     if (!metadata) {
-      set(filepath, metadata = new Metadata(filepath, mtime))
+      set(filepath, metadata = new Metadata(filepath, mtime, maxAge))
       metadata.set('source', code)
     }
 
