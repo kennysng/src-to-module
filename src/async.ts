@@ -6,7 +6,7 @@ import { Module } from 'module'
 import { getTranspiler } from './transpiler'
 import debug from 'debug'
 
-const log = debug('async')
+const log = debug('src-to-module:async')
 
 function lstatP(filepath: string): Promise<Stats> {
   return new Promise((s, j) => {

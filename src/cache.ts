@@ -3,8 +3,8 @@ import { lstat, lstatSync, Stats } from 'fs'
 import debug from 'debug'
 import pretty from 'pretty-bytes'
 
-const log = debug('cache')
-const sizeLog = debug('cache-size')
+const log = debug('src-to-module:cache')
+const sizeLog = debug('src-to-module:cache:size')
 
 let enabled = true
 

@@ -5,7 +5,7 @@ import { Module } from 'module'
 import { getTranspiler } from './transpiler'
 import debug from 'debug'
 
-const log = debug('sync')
+const log = debug('src-to-module:sync')
 
 export function requireSync<T>(filepath: string, baseContext: any = {}, maxAge?: number): T {
   // resolve file path
