@@ -7,7 +7,7 @@
   "scripts": {
     "test": "DEBUG=src-to-module* jest",
     "lint": "tslint -p tsconfig.json",
-    "build": "tsc -p tsconfig.json && cp src/my.d.ts dist",
+    "build": "tsc -p tsconfig.json",
     "prepublishOnly": "npm run build",
     "postpublish": "rm -rf dist"
   },
