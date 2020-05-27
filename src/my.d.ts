@@ -1,1 +1,0 @@
-declare function requireAsync<T>(filepath: string): Promise<T>

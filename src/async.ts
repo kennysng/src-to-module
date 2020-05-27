@@ -140,3 +140,5 @@ async function runAsync_<T>(noCache: boolean, code: string, filepath: string, ba
     log('run "%s" elapsed: %d ms', filepath, Date.now() - start)
   }
 }
+
+global.requireAsync = requireAsync
