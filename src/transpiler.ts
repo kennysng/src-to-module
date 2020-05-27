@@ -12,9 +12,12 @@ export interface Transpiler {
 }
 
 export function registerTranspiler(transpiler: Transpiler) {
-  if (!transpilers.find(t => t.constructor === transpiler.constructor)) {
-    transpilers.push(transpiler)
-  }
+  transpilers.push(transpiler)
+}
+
+export function unregisterTranspiler(name: string) {
+  const index = transpilers.findIndex(t => t.constructor.name === name)
+  if (index > -1) transpilers.splice(index, -1)
 }
 
 export function getTranspiler(path: string) {
