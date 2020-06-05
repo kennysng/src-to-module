@@ -155,7 +155,7 @@ export class Metadata {
           length += 1
           break
         default:
-          length += 16000 // 16KB
+          length += 8000 // 8KB
       }
     }
     length += this.dependencies.reduce((r, p) => r + p.length, 0)
