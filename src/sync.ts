@@ -20,7 +20,7 @@ export function requireSync<T>(filepath: string, baseContext: any = {}, maxAge?:
 
   // create metadata
   if (!metadata) {
-    set(filepath, metadata = new Metadata(filepath, stat.mtime.getDate(), maxAge))
+    set(filepath, metadata = new Metadata(filepath, stat.mtime.getTime(), maxAge))
   }
 
   // no cache, or dependency modified
@@ -80,7 +80,7 @@ function runSync_<T>(noCache: boolean, code: string, filepath: string, baseConte
     try {
       const stat = lstatSync(filepath)
       if (!stat.isFile()) throw new Error(`'${filepath}' is not a file`)
-      mtime = stat.mtime.getDate()
+      mtime = stat.mtime.getTime()
     }
     catch (e) {
       // virtual file

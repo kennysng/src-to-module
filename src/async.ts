@@ -33,7 +33,7 @@ export async function requireAsync<T>(filepath: string, baseContext: any = {}, m
 
   // create metadata
   if (!metadata) {
-    set(filepath, metadata = new Metadata(filepath, stat.mtime.getDate(), maxAge))
+    set(filepath, metadata = new Metadata(filepath, stat.mtime.getTime(), maxAge))
   }
 
   // no cache, or dependency modified
@@ -80,7 +80,7 @@ async function runAsync_<T>(noCache: boolean, code: string, filepath: string, ba
     try {
       const stat = await lstatP(filepath)
       if (!stat.isFile()) throw new Error(`'${filepath}' is not a file`)
-      mtime = stat.mtime.getDate()
+      mtime = stat.mtime.getTime()
     }
     catch (e) {
       // virtual file

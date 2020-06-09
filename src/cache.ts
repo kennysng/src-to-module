@@ -83,7 +83,7 @@ export class Metadata {
       if (this.maxAge !== -1) throw new Error('FALLBACK')
 
       // file modified
-      const lastModified = lstatSync(this.path).mtime.getDate()
+      const lastModified = lstatSync(this.path).mtime.getTime()
       if (lastModified !== this.lastModified) return true
     }
     catch (e) {
@@ -107,7 +107,7 @@ export class Metadata {
       if (this.maxAge !== -1) throw new Error('FALLBACK')
 
       // file modified
-      const lastModified = (await lstatP(this.path)).mtime.getDate()
+      const lastModified = (await lstatP(this.path)).mtime.getTime()
       if (lastModified !== this.lastModified) return true
     }
     catch (e) {
