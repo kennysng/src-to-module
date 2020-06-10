@@ -1,11 +1,12 @@
 {
   "name": "src-to-module",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Convert source code to module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
     "test": "DEBUG=src-to-module* jest",
+    "test:win": "set DEBUG=src-to-module* & jest",
     "lint": "tslint -p tsconfig.json",
     "build": "tsc -p tsconfig.json",
     "prepublishOnly": "npm run build",
