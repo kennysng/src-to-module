@@ -32,55 +32,51 @@ let CACHE: LruCache<string, Metadata>
 const DEFAULT_MAX_AGE = 30 * 60 * 1000
 
 export class Metadata {
-  private transpiled = false
-  private processed = false
-  // transpiled = false, processed = false -> source code
-  // transpiled = true, processed = false -> transpiled code
-  // transpiled = true, processed = true -> module
-  private cache: any
+  // cache
+  private source_?: string
+  private transpiled_?: string
+  private module_?: any
 
   private createdAt = Date.now()
 
   private dependencies: string[] = []
 
-  constructor(public readonly path: string, private readonly lastModified: number, private readonly maxAge = -1) {
+  constructor(public readonly path: string, private readonly lastModified: number, private readonly maxAge?: number) {
   }
 
-  public set(type: 'source' | 'transpiled' | 'module', cache: any) {
-    switch (type) {
-      case 'source':
-        this.transpiled = false
-        this.processed = false
-        break
-      case 'transpiled':
-        this.transpiled = true
-        this.processed = false
-        break
-      case 'module':
-        this.transpiled = true
-        this.processed = true
-        break
-    }
-    this.cache = cache
+  private get hasMaxAge(): boolean {
+    return typeof this.maxAge === 'number' && this.maxAge > 0
+  }
+
+  public get sourceCode(): string | undefined {
+    return this.source_
+  }
+  public set sourceCode(code: string | undefined) {
+    this.source_ = code
     set(this.path, this)
   }
 
-  public sourceCode(): string | undefined {
-    return !this.transpiled && !this.processed && typeof this.cache === 'string' ? this.cache : undefined
+  public get transpiledCode(): string | undefined {
+    return this.transpiled_
+  }
+  public set transpiledCode(code: string | undefined) {
+    this.transpiled_ = code
+    set(this.path, this)
   }
 
-  public transpiledCode(): string | undefined {
-    return this.transpiled && !this.processed && typeof this.cache === 'string' ? this.cache : undefined
+  public get module(): any | undefined {
+    return this.module_
   }
 
-  public module<T>(): T | undefined {
-    return this.transpiled && this.processed ? this.cache : undefined
+  public set module(cache: any | undefined) {
+    this.module_ = cache
+    set(this.path, this)
   }
 
   public isModifiedSync(): boolean {
     try {
       // cahce expired
-      if (this.maxAge !== -1) throw new Error('FALLBACK')
+      if (this.hasMaxAge) throw new Error('FALLBACK')
 
       // file modified
       const lastModified = lstatSync(this.path).mtime.getTime()
@@ -88,7 +84,7 @@ export class Metadata {
     }
     catch (e) {
       // virtual file
-      const maxAge = this.maxAge === -1 ? DEFAULT_MAX_AGE : this.maxAge
+      const maxAge = this.maxAge || DEFAULT_MAX_AGE
       if (Date.now() > this.createdAt + maxAge) return true
     }
 
@@ -104,7 +100,7 @@ export class Metadata {
 
     try {
       // cache expired
-      if (this.maxAge !== -1) throw new Error('FALLBACK')
+      if (this.hasMaxAge) throw new Error('FALLBACK')
 
       // file modified
       const lastModified = (await lstatP(this.path)).mtime.getTime()
@@ -112,7 +108,7 @@ export class Metadata {
     }
     catch (e) {
       // virtual file
-      const maxAge = this.maxAge === -1 ? DEFAULT_MAX_AGE : this.maxAge
+      const maxAge = this.maxAge || DEFAULT_MAX_AGE
       if (Date.now() > this.createdAt + maxAge) return true
     }
 
@@ -140,24 +136,10 @@ export class Metadata {
   }
 
   public get length(): number {
-    let length = 1 /* tranpiled */ + 1 /* processed */ + 8 /* lastModified */ + 8 /* createdAt */ + 8 /* maxAge */ + this.path.length
-    if (this.cache) {
-      switch (typeof this.cache) {
-        case 'string':
-          length += this.cache.length
-          break
-        case 'number':
-        case 'bigint':
-          length += 8
-          break
-        case 'undefined':
-        case 'boolean':
-          length += 1
-          break
-        default:
-          length += 8000 // 8KB
-      }
-    }
+    let length = 8000 /* base */ + 8 /* lastModified */ + 8 /* createdAt */ + 8 /* maxAge */ + this.path.length
+    if (this.source_) length += this.source_.length
+    if (this.transpiled_) length += this.transpiled_.length
+    if (this.module_) length += 8000  // 8KB
     length += this.dependencies.reduce((r, p) => r + p.length, 0)
     return length
   }

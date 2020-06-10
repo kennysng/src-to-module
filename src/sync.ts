@@ -4,10 +4,13 @@ import { extname, isAbsolute, resolve } from 'path'
 import { Module } from 'module'
 import { getTranspiler } from './transpiler'
 import debug from 'debug'
+import { IRequireOptions } from './interface'
 
 const log = debug('src-to-module:sync')
 
-export function requireSync<T>(filepath: string, baseContext: any = {}, maxAge?: number): T {
+export function requireSync<T>(filepath: string, options: IRequireOptions = {}): T | undefined {
+  const { cacheLevel = 'module', maxAge } = options
+
   // resolve file path
   filepath = resolvePath(filepath)
 
@@ -23,27 +26,20 @@ export function requireSync<T>(filepath: string, baseContext: any = {}, maxAge?:
     set(filepath, metadata = new Metadata(filepath, stat.mtime.getTime(), maxAge))
   }
 
-  // no cache, or dependency modified
-  if (!metadata.module() || metadata.isDependencyModifiedSync()) {
-    // no source code
-    if (!metadata.sourceCode()) {
-      metadata.set('source', readFileSync(filepath, 'utf8'))
-    }
-
-    // run code
-    const code = metadata.sourceCode() as string
-    metadata.set('module', runSync_(true, code, filepath, baseContext, maxAge))
-  }
-  else {
-    log('require "%s" from cache', filepath)
+  // is cached
+  if (cacheLevel === 'module' && metadata.module && !metadata.isDependencyModifiedSync()) {
+    return metadata.module
   }
 
-  // return cache
-  return metadata.module() as T
+  // get code
+  const code = cacheLevel === 'none' || !metadata.sourceCode ? readFileSync(filepath, 'utf8') : metadata.sourceCode
+
+  // run the code
+  return runSync_(true, code, filepath, options) as T
 }
 
-export function runSync<T>(code: string, filepath: string, baseContext: any = {}, maxAge?: number): T {
-  return runSync_(false, code, filepath, baseContext, maxAge)
+export function runSync<T>(code: string, filepath: string, options: IRequireOptions = {}): T | undefined {
+  return runSync_(false, code, filepath, options)
 }
 
 export function resolvePath(filepath: string): string {
@@ -59,9 +55,11 @@ export function resolvePath(filepath: string): string {
   return filepath
 }
 
-function runSync_<T>(noCache: boolean, code: string, filepath: string, baseContext: any, maxAge?: number): T {
+function runSync_<T>(noCache: boolean, code: string, filepath: string, options: IRequireOptions): T | undefined {
   const start = Date.now()
   try {
+    const { baseContext = {}, cacheLevel = 'module', maxAge } = options
+
     // resolve file path
     filepath = resolvePath(filepath)
 
@@ -89,40 +87,39 @@ function runSync_<T>(noCache: boolean, code: string, filepath: string, baseConte
     // create metadata
     if (!metadata) {
       set(filepath, metadata = new Metadata(filepath, mtime, maxAge))
-      metadata.set('source', code)
+      if (cacheLevel !== 'none') metadata.sourceCode = code
     }
 
-    // no cache, or dependency modified
-    if (noCache || !metadata.module() || metadata.isDependencyModifiedSync()) {
-      // no transpiled code
-      if (!metadata.transpiledCode()) {
-        metadata.set('transpiled', transpiler.transpile(filepath, code))
-      }
-
-      // run code
-      code = metadata.transpiledCode() as string
-      const newRequire = new Proxy(Module.createRequire(filepath), {
-        apply(target: NodeRequire, thisArg: any, argArray: any[]) {
-          let filepath = argArray[0] as string
-          
-          // from node_modules
-          if (!isAbsolute(filepath) && !filepath.startsWith('.')) {
-            return require(filepath)
-          }
-
-          // from file system
-          (metadata as Metadata).depend(filepath = target.resolve(filepath))
-          return requireSync(filepath, baseContext)
-        },
-      })
-      metadata.set('module', transpiler.run<T>(filepath, code, newRequire, { ...baseContext }))
-    }
-    else {
+    // is cached
+    if (!noCache && cacheLevel === 'module' && metadata.module && !metadata.isDependencyModifiedSync()) {
       log('run "%s" from cache', filepath)
+      return metadata.module
     }
 
-    // return cache
-    return metadata.module() as T
+    // transpile code
+    const cacheTranspiled = ['transpiled', 'module'].indexOf(cacheLevel) > -1
+    code = noCache || !cacheTranspiled || !metadata.transpiledCode ? transpiler.transpile(filepath, code) : metadata.transpiledCode
+    if (cacheTranspiled) metadata.transpiledCode = code
+
+    // run code
+    const newRequire = new Proxy(Module.createRequire(filepath), {
+      apply(target: NodeRequire, thisArg: any, argArray: any[]) {
+        let filepath = argArray[0] as string
+        
+        // from node_modules
+        if (!isAbsolute(filepath) && !filepath.startsWith('.')) {
+          return require(filepath)
+        }
+
+        // from file system
+        (metadata as Metadata).depend(filepath = target.resolve(filepath))
+        return requireSync(filepath, options)
+      },
+    })
+    const module = transpiler.run<T>(filepath, code, newRequire, { ...baseContext })
+    if (cacheLevel === 'module') metadata.module = module
+
+    return module
   }
   finally {
     log('run "%s" elapsed: %d ms', filepath, Date.now() - start)

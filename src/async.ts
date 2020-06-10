@@ -5,6 +5,7 @@ import { extname, isAbsolute } from 'path'
 import { Module } from 'module'
 import { getTranspiler } from './transpiler'
 import debug from 'debug'
+import { IRequireOptions } from './interface'
 
 const log = debug('src-to-module:async')
 
@@ -20,7 +21,9 @@ function readFileP(filepath: string): Promise<string> {
   })
 }
 
-export async function requireAsync<T>(filepath: string, baseContext: any = {}, maxAge?: number): Promise<T> {
+export async function requireAsync<T>(filepath: string, options: IRequireOptions = {}): Promise<T | undefined> {
+  const { cacheLevel = 'module', maxAge } = options
+
   // resolve file path
   filepath = resolvePath(filepath)
 
@@ -36,32 +39,27 @@ export async function requireAsync<T>(filepath: string, baseContext: any = {}, m
     set(filepath, metadata = new Metadata(filepath, stat.mtime.getTime(), maxAge))
   }
 
-  // no cache, or dependency modified
-  if (!metadata.module() || await metadata.isDependencyModifiedAsync()) {
-    // no source code
-    if (!metadata.sourceCode()) {
-      metadata.set('source', await readFileP(filepath))
-    }
-
-    // run code
-    const code = metadata.sourceCode() as string
-    metadata.set('module', await runAsync_(true, code, filepath, baseContext, maxAge))
-  }
-  else {
-    log('require "%s" from cache', filepath)
+  // is cached
+  if (cacheLevel === 'module' && metadata.module && !await metadata.isDependencyModifiedAsync()) {
+    return metadata.module
   }
 
-  // return cache
-  return metadata.module() as T
+  // get code
+  const code = cacheLevel === 'none' || !metadata.sourceCode ? await readFileP(filepath) : metadata.sourceCode
+
+  // run the code
+  return runAsync_(true, code, filepath, options)
 }
 
-export async function runAsync<T>(code: string, filepath: string, baseContext: any = {}, maxAge?: number): Promise<T> {
-  return await runAsync_(false, code, filepath, baseContext, maxAge)
+export async function runAsync<T>(code: string, filepath: string, options: IRequireOptions = {}): Promise<T | undefined> {
+  return await runAsync_(false, code, filepath, options)
 }
 
-async function runAsync_<T>(noCache: boolean, code: string, filepath: string, baseContext: any, maxAge?: number): Promise<T> {
+async function runAsync_<T>(noCache: boolean, code: string, filepath: string, options: IRequireOptions = {}): Promise<T | undefined> {
   const start = Date.now()
   try {
+    const { baseContext = {}, cacheLevel = 'module', maxAge } = options
+
     // resolve file path
     filepath = resolvePath(filepath)
 
@@ -89,52 +87,51 @@ async function runAsync_<T>(noCache: boolean, code: string, filepath: string, ba
     // create metadata
     if (!metadata) {
       set(filepath, metadata = new Metadata(filepath, mtime, maxAge))
-      metadata.set('source', code)
+      if (cacheLevel !== 'none') metadata.sourceCode = code
     }
 
-    // no cache, or dependency modified
-    if (noCache || !metadata.module() || await metadata.isDependencyModifiedAsync()) {
-      // no transpiled code
-      if (!metadata.transpiledCode()) {
-        metadata.set('transpiled', transpiler.transpile(filepath, code))
-      }
-
-      // run code
-      code = metadata.transpiledCode() as string
-      const newRequire = new Proxy(Module.createRequire(filepath), {
-        apply(target: NodeRequire, thisArg: any, argArray: any[]) {
-          let filepath = argArray[0] as string
-          
-          // from node_modules
-          if (!isAbsolute(filepath) && !filepath.startsWith('.')) {
-            return require(filepath)
-          }
-
-          // from file system
-          (metadata as Metadata).depend(filepath = target.resolve(filepath))
-          return requireSync(filepath, baseContext)
-        },
-      })
-      metadata.set('module', await transpiler.runAsync<T>(filepath, code, newRequire, {
-        ...baseContext,
-        requireAsync: async function<R>(filepath: string): Promise<R> {
-          // from node_modules
-          if (!isAbsolute(filepath) && !filepath.startsWith('.')) {
-            return require(filepath)
-          }
-
-          // from file system
-          (metadata as Metadata).depend(filepath = newRequire.resolve(filepath))
-          return await requireAsync<R>(filepath, baseContext)
-        },
-      }))
-    }
-    else {
+    // is cached
+    if (!noCache && cacheLevel === 'module' && metadata.module && !await metadata.isDependencyModifiedAsync()) {
       log('run "%s" from cache', filepath)
+      return metadata.module
     }
 
-    // return cache
-    return metadata.module() as T
+    // transpile code
+    const cacheTranspiled = ['transpiled', 'module'].indexOf(cacheLevel) > -1
+    code = noCache || !cacheTranspiled || !metadata.transpiledCode ? transpiler.transpile(filepath, code) : metadata.transpiledCode
+    if (cacheTranspiled) metadata.transpiledCode = code
+
+    // run code
+    const newRequire = new Proxy(Module.createRequire(filepath), {
+      apply(target: NodeRequire, thisArg: any, argArray: any[]) {
+        let filepath = argArray[0] as string
+        
+        // from node_modules
+        if (!isAbsolute(filepath) && !filepath.startsWith('.')) {
+          return require(filepath)
+        }
+
+        // from file system
+        (metadata as Metadata).depend(filepath = target.resolve(filepath))
+        return requireSync(filepath, options)
+      },
+    })
+    const module = await transpiler.runAsync<T>(filepath, code, newRequire, {
+      ...baseContext,
+      requireAsync: async function<R>(filepath: string): Promise<R | undefined> {
+        // from node_modules
+        if (!isAbsolute(filepath) && !filepath.startsWith('.')) {
+          return require(filepath)
+        }
+
+        // from file system
+        (metadata as Metadata).depend(filepath = newRequire.resolve(filepath))
+        return await requireAsync<R>(filepath, baseContext)
+      },
+    })
+    if (cacheLevel === 'module') metadata.module = module
+
+    return module
   }
   finally {
     log('run "%s" elapsed: %d ms', filepath, Date.now() - start)

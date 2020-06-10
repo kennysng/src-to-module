@@ -1,5 +1,5 @@
 declare global {
-  function requireAsync<T>(filepath: string): Promise<T>
+  function requireAsync<T>(filepath: string): Promise<T | undefined>
 }
 
 export { enableCache, disableCache, invalidateCache, setCacheOptions } from './cache'
