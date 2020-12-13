@@ -2,6 +2,9 @@ import debug from 'debug'
 import { lstat, readFile } from 'fs/promises'
 import { Module } from 'module'
 import { extname, isAbsolute } from 'path'
+import {
+  clearDependency, get, set, setDependency,
+} from './cache'
 import { getTranspiler, resolvePath } from './common'
 import { requireSync } from './sync'
 
@@ -34,7 +37,7 @@ async function baseRun<T = void, C = any>(code: string, filepath: string, contex
           return require(requirePath)
         }
 
-        requirePath = target.resolve(requirePath)
+        setDependency(filepath, requirePath = target.resolve(requirePath))
 
         // try typescript
         if (extname(requirePath) === '.ts') {
@@ -54,7 +57,7 @@ async function baseRun<T = void, C = any>(code: string, filepath: string, contex
           return require(requirePath)
         }
 
-        requirePath = newRequire.resolve(requirePath)
+        setDependency(filepath, requirePath = newRequire.resolve(requirePath))
 
         // try typescript
         if (extname(requirePath) === '.ts') {
@@ -86,11 +89,18 @@ export async function requireAsync<T = void, C = any>(filepath: string, context?
   const stat = await lstat(filepath)
   if (!stat.isFile()) throw new Error(`'${filepath}' is not a file`)
 
+  // check cache
+  const cached = await get(filepath)
+  if (cached) return cached
+  clearDependency(filepath)
+
   // get code
   const code = await readFile(filepath, 'utf8')
 
   // run the code
-  return baseRun(code, filepath, context)
+  const module = await baseRun<T, C>(code, filepath, context)
+  await set(filepath, module)
+  return module
 }
 
 /**

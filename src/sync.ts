@@ -2,6 +2,9 @@ import debug from 'debug'
 import { readFileSync, lstatSync } from 'fs'
 import { Module } from 'module'
 import { extname, isAbsolute } from 'path'
+import {
+  clearDependency, getSync, setDependency, setSync,
+} from './cache'
 import { getTranspiler, resolvePath } from './common'
 
 const log = debug('src-to-module:sync')
@@ -33,7 +36,7 @@ function baseRun<T = void, C = any>(code: string, filepath: string, context?: C)
           return require(requirePath)
         }
 
-        requirePath = target.resolve(requirePath)
+        setDependency(filepath, requirePath = target.resolve(requirePath))
 
         // eslint-disable-next-line @typescript-eslint/no-use-before-define
         return requireSync(requirePath, context)
@@ -61,11 +64,18 @@ export function requireSync<T = void, C = any>(filepath: string, context?: C): T
   const stat = lstatSync(filepath)
   if (!stat.isFile()) throw new Error(`'${filepath}' is not a file`)
 
+  // check cache
+  const cached = getSync<T>(filepath)
+  if (cached) return cached
+  clearDependency(filepath)
+
   // get code
   const code = readFileSync(filepath, 'utf8')
 
   // run the code
-  return baseRun(code, filepath, context)
+  const module = baseRun<T, C>(code, filepath, context)
+  setSync(filepath, module)
+  return module
 }
 
 /**
