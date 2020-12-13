@@ -11,6 +11,8 @@ registerTranspiler(new JsTranspiler())
 
 export { registerTranspiler } from './common'
 export { Transpiler } from './interface'
+export { JsTranspiler } from './transpiler/js'
+export { JsonTranspiler } from './transpiler/json'
 export { requireSync, runSync } from './sync'
 export { requireAsync, runAsync } from './async'
 export { enableLastModifiedCheck } from './cache'
