@@ -6,50 +6,26 @@ This is a library to load NodeJS script in runtime, either in a file or in plain
 
 ----
 
-`enableCache()`
+`enableLastModifiedCheck(value: boolean)`
 
-Enable in-memory cache on source codes, transpiled codes and exported modules. 
-
-----
-
-`disableCache()`
-
-Disable in-memory cache. 
+Whether to enable last modified check on module cache. Enabled by default. If disabled, will always return cached module. 
 
 ----
 
-`invalidateCache()`
-
-Clear in-memory cache. 
-
-----
-
-`setCacheOptions(options: Options<string, Metadata>, clear = false)`
-
-Set lru-cache options. Please check [lru-cache](https://www.npmjs.com/package/lru-cache).  
-When `clear = true`, the existing cache will not be inherited. 
-
-----
-
-`requireSync(filepath: string, baseContext: any = {}, maxAge?: number)`  
-`requireAsync(filepath: string, baseContext: any = {}, maxAge?: number)`
+`requireSync(filepath: string, context: any = {})`  
+`requireAsync(filepath: string, context: any = {})`
 
 Load modules from file.  
-When a positive `maxAge` is provided, the cache will be expired after `Date.now() + maxAge`.  
-Note that `maxAge` will not be applied if a cache for this file already exists.  
-  
 In case you are using `requireAsync`, there will be a `requireAsync` function in global context of the processed file.  
 Note that using `await` without `async` will result to syntax error.  
 Please check the [example](test/async.js). 
 
 ----
 
-`runSync(code: string, filepath: string, baseContext: any = {}, maxAge?: number)`  
-`runAsync(code: string, filepath: string, baseContext: any = {}, maxAge?: number)`
+`runSync(code: string, filepath: string, context: any = {})`  
+`runAsync(code: string, filepath: string, context: any = {})`
 
 Load modules from plain text. A actual/virtual file path should be provided.  
-When a positive `maxAge` is provided, the cache will be expired after `Date.now() + maxAge`.  
-Note that `maxAge` will not be applied if a cache for this file already exists.  
 In case this is a virtual file path, by default the cache will be expired after 30 mins if a positive `maxAge` is not provided
 
 ----
