@@ -1,4 +1,4 @@
-import { requireSync, requireAsync } from '../src'
+import { requireSync, requireAsync } from '.'
 
 test('sync', () => {
   const message = requireSync<string>('../test/sync')

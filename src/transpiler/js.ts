@@ -25,7 +25,9 @@ export class JsTranspiler implements Transpiler {
   public run<T>(path: string, code: string, require: NodeRequire, context: any = {}): T {
     // create sandbox
     code = Module.wrap(code)
-    context = createContext({ ...context, console, process })
+    context = createContext({
+      ...context, console, global: { ...global, require, ...context }, process,
+    })
     const func = new Script(code, { filename: path }).runInContext(context)
 
     // module.exports
@@ -55,10 +57,12 @@ export class JsTranspiler implements Transpiler {
   /**
    * @override
    */
-  public async runAsync<T>(path: string, code: string, require: NodeRequire, baseContext: any = {}): Promise<T> {
+  public async runAsync<T>(path: string, code: string, require: NodeRequire, context: any = {}): Promise<T> {
     // create sandbox
     code = `(async ${Module.wrap(code).substr(1)}`
-    const context = createContext({ ...baseContext, console, process })
+    context = createContext({
+      ...context, console, global: { ...global, require, ...context }, process,
+    })
     const func = new Script(code, { filename: path }).runInContext(context)
 
     // module.exports
@@ -81,8 +85,7 @@ export class JsTranspiler implements Transpiler {
     })
 
     // run sandbox asynchronously
-    func(wrappedModule.exports, require, wrappedModule, path, dirname(path))
-    if (hasExports && wrappedModule.exports instanceof Promise) wrappedModule.exports = await wrappedModule.exports
+    await func(wrappedModule.exports, require, wrappedModule, path, dirname(path))
     return (hasExports ? wrappedModule.exports : undefined) as T
   }
 }

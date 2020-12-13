@@ -25,13 +25,15 @@ function baseRun<T = void, C = any>(code: string, filepath: string, context?: C)
     // run code
     const newRequire = new Proxy(Module.createRequire(filepath), {
       apply(target: NodeRequire, thisArg: any, argArray: any[]) {
-        const requirePath = argArray[0] as string
+        let requirePath = argArray[0] as string
 
         // from node_modules
         if (!isAbsolute(requirePath) && !requirePath.startsWith('.')) {
           // eslint-disable-next-line global-require
           return require(requirePath)
         }
+
+        requirePath = target.resolve(requirePath)
 
         // eslint-disable-next-line @typescript-eslint/no-use-before-define
         return requireSync(requirePath, context)

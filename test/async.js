@@ -1,3 +1,3 @@
-import { requireAsync } from '../src'
+/// <reference path="../src/index.ts" />
 
-module.exports = exports = await requireAsync('./common.js')
+module.exports = exports = await global.requireAsync('./common.js')

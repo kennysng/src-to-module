@@ -11,7 +11,8 @@
     "strictPropertyInitialization": false,
   },
   "include": [
-    "test/**/*.{js,ts}"
+    "src/**/*.test.ts",
+    "test/**/*.js"
   ],
   "exclude": [
     "node_modules"
