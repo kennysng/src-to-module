@@ -7,17 +7,6 @@ const lastModified: { [key: string]: number } = {}
 
 let lastModifiedCheck = true
 
-function getDependencies(filepath: string, result: string[] = []): string[] {
-  const dependencies = dependenciesByFile[filepath] || []
-  for (let i = 0; i < dependencies.length; i += 1) {
-    const dependency = dependencies[i]
-    if (result.indexOf(dependency) === -1) {
-      result.push(...getDependencies(dependency))
-    }
-  }
-  return result
-}
-
 /**
  * Get cached module asynchronously
  * @param {string} filepath
@@ -32,12 +21,8 @@ export async function get<T = void>(filepath: string): Promise<T | undefined> {
       }
 
       // check dependencies
-      const dependencies = getDependencies(filepath)
-      const flags = await Promise.all(dependencies.map(async (dependency) => {
-        const stat2 = await lstat(dependency)
-        return lastModified[dependency] < stat2.mtime.getTime()
-      }))
-      if (flags.reduce((r, f) => r || f, false)) return undefined
+      const dependencies = dependenciesByFile[filepath] || []
+      if (!dependencies.every(async (dependency) => !!await get(dependency))) return undefined
     } catch (e) {
       return undefined
     }
@@ -71,6 +56,12 @@ export function getSync<T = void>(filepath: string): T | undefined {
       const stat = lstatSync(filepath)
       if (lastModified[filepath] < stat.mtime.getTime()) {
         return undefined
+      }
+
+      // check dependencies
+      const dependencies = dependenciesByFile[filepath] || []
+      for (let i = 0; i < dependencies.length; i += 1) {
+        if (!getSync(dependencies[i])) return undefined
       }
     } catch (e) {
       return undefined
