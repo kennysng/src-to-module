@@ -27,6 +27,7 @@ module.exports = {
     'class-methods-use-this': 0,
     'import/no-dynamic-require': 0,
     'import/prefer-default-export': 0,
+    'linebreak-style': 0,
     'max-len': 0,
     'no-multi-assign': 0,
     'no-param-reassign': 0
