@@ -25,9 +25,12 @@ export class JsTranspiler implements Transpiler {
   public run<T>(path: string, code: string, require: NodeRequire, context: any = {}): T {
     // create sandbox
     code = Module.wrap(code)
-    context = createContext({
-      ...context, console, global: { ...global, require, ...context }, process,
-    })
+    const { global: extraGlobal = {}, ...extraContext } = context
+    context = {
+      ...global, console, ...extraGlobal, ...extraContext,
+    }
+    context.global = context
+    context = createContext(context)
     const func = new Script(code, { filename: path }).runInContext(context)
 
     // module.exports
@@ -60,9 +63,12 @@ export class JsTranspiler implements Transpiler {
   public async runAsync<T>(path: string, code: string, require: NodeRequire, context: any = {}): Promise<T> {
     // create sandbox
     code = `(async ${Module.wrap(code).substr(1)}`
-    context = createContext({
-      ...context, console, global: { ...global, require, ...context }, process,
-    })
+    const { global: extraGlobal = {}, ...extraContext } = context
+    context = {
+      ...global, console, ...extraGlobal, ...extraContext,
+    }
+    context.global = context
+    context = createContext(context)
     const func = new Script(code, { filename: path }).runInContext(context)
 
     // module.exports
