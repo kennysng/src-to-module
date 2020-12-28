@@ -10,7 +10,12 @@ test('async', async () => {
   expect(message).toBe('Hello, World')
 })
 
-test('context', () => {
-  const message = requireSync<string>('../test/context')
+test('process', () => {
+  const message = requireSync<string>('../test/process')
   expect(message).toBe('test')
+})
+
+test('extra', () => {
+  const message = requireSync<string>('../test/extra', { global: { message: 'hi' } })
+  expect(message).toBe('hi')
 })
