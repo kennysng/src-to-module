@@ -27,7 +27,7 @@ export class JsTranspiler implements Transpiler {
     code = Module.wrap(code)
     const { global: extraGlobal = {}, ...extraContext } = context
     context = {
-      ...global, console, ...extraGlobal, ...extraContext,
+      ...global, console, process, ...extraGlobal, ...extraContext,
     }
     context.global = context
     context = createContext(context)
@@ -65,7 +65,7 @@ export class JsTranspiler implements Transpiler {
     code = `(async ${Module.wrap(code).substr(1)}`
     const { global: extraGlobal = {}, ...extraContext } = context
     context = {
-      ...global, console, ...extraGlobal, ...extraContext,
+      ...global, console, process, ...extraGlobal, ...extraContext,
     }
     context.global = context
     context = createContext(context)
