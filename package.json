@@ -1,6 +1,6 @@
 {
   "name": "src-to-module",
-  "version": "2.0.7",
+  "version": "2.0.8",
   "description": "Convert source code to module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -25,6 +25,10 @@
     "dist"
   ],
   "homepage": "https://github.com/kennysng/src-to-module#readme",
+  "engines": {
+    "node": ">=10.1.0"
+  },
+  "engineStrict": true,
   "devDependencies": {
     "@types/debug": "^4.1.5",
     "@types/jest": "^26.0.19",

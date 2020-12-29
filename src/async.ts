@@ -1,5 +1,5 @@
 import debug from 'debug'
-import { lstat, readFile } from 'fs/promises'
+import * as fs from 'fs'
 import { Module } from 'module'
 import { extname, isAbsolute } from 'path'
 import {
@@ -9,6 +9,7 @@ import { getTranspiler, resolvePath } from './common'
 import { requireSync } from './sync'
 
 const log = debug('src-to-module:async')
+const { lstat, readFile } = fs.promises
 
 async function baseRun<T = void, C = any>(code: string, filepath: string, context?: C): Promise<T> {
   const start = Date.now()

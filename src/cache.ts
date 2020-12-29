@@ -1,5 +1,7 @@
 import { lstatSync } from 'fs'
-import { lstat } from 'fs/promises'
+import * as fs from 'fs'
+
+const { lstat } = fs.promises
 
 const cached: any = {}
 const dependenciesByFile: { [key: string]: string[] } = {}
