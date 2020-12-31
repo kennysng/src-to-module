@@ -14,7 +14,7 @@ let lastModifiedCheck = true
  * @param {string} filepath
  * @returns {Promise<T|undefined>} await cached module
  */
-export async function get<T = void>(filepath: string): Promise<T | undefined> {
+export async function get<T = void>(filepath: string, checked: string[] = []): Promise<T | undefined> {
   if (lastModifiedCheck) {
     try {
       const stat = await lstat(filepath)
@@ -24,7 +24,9 @@ export async function get<T = void>(filepath: string): Promise<T | undefined> {
 
       // check dependencies
       const dependencies = dependenciesByFile[filepath] || []
-      if (!dependencies.every(async (dependency) => !!await get(dependency))) return undefined
+      if (!dependencies.every(async (dependency) => checked.indexOf(dependency) === -1 && !!await get(dependency, [...checked, filepath]))) {
+        return undefined
+      }
     } catch (e) {
       return undefined
     }
@@ -52,7 +54,7 @@ export async function set<T = void>(filepath: string, value: T): Promise<void> {
  * @param {string} filepath
  * @returns {T|undefined} cached module
  */
-export function getSync<T = void>(filepath: string): T | undefined {
+export function getSync<T = void>(filepath: string, checked: string[] = []): T | undefined {
   if (lastModifiedCheck) {
     try {
       const stat = lstatSync(filepath)
@@ -63,7 +65,9 @@ export function getSync<T = void>(filepath: string): T | undefined {
       // check dependencies
       const dependencies = dependenciesByFile[filepath] || []
       for (let i = 0; i < dependencies.length; i += 1) {
-        if (!getSync(dependencies[i])) return undefined
+        if (checked.indexOf(dependencies[i]) === -1 && !getSync(dependencies[i], [...checked, filepath])) {
+          return undefined
+        }
       }
     } catch (e) {
       return undefined
