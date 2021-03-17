@@ -3,7 +3,17 @@ import * as fs from 'fs'
 
 const { lstat } = fs.promises
 
-const cached: any = {}
+const MAX_CACHE = +(process.env.SRC_TO_MODULE_MAX_CACHE || 128)
+const cached: any = new Proxy({} as any, {
+  set: (obj, prop, value) => {
+    const keys: Array<string|symbol> = obj.keys = obj.keys || []
+    const isCached = keys.indexOf(prop) > -1
+    if (!isCached && keys.length >= MAX_CACHE) keys.shift()
+    obj[prop] = value
+    if (!isCached) keys.push(prop)
+    return true
+  },
+})
 const dependenciesByFile: { [key: string]: string[] } = {}
 const lastModified: { [key: string]: number } = {}
 
