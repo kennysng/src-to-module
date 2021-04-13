@@ -30,13 +30,16 @@ function baseRun<T = void, C = any>(code: string, filepath: string, context?: C)
       apply(target: NodeRequire, thisArg: any, argArray: any[]) {
         let requirePath = argArray[0] as string
 
+        const resolved = target.resolve(requirePath)
+        log('resolve "%s"', resolved)
+
         // from node_modules
         if (!isAbsolute(requirePath) && !requirePath.startsWith('.')) {
           // eslint-disable-next-line global-require
           return require(requirePath)
         }
 
-        setDependency(filepath, requirePath = target.resolve(requirePath))
+        setDependency(filepath, requirePath = resolved)
 
         // eslint-disable-next-line @typescript-eslint/no-use-before-define
         return requireSync(requirePath, context)
