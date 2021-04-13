@@ -30,13 +30,18 @@ function baseRun<T = void, C = any>(code: string, filepath: string, context?: C)
       apply(target: NodeRequire, thisArg: any, argArray: any[]) {
         let requirePath = argArray[0] as string
 
-        const resolved = target.resolve(requirePath)
+        let resolved: string
+        try {
+          resolved = target.resolve(requirePath)
+        } catch (e) {
+          resolved = require.resolve(requirePath)
+        }
         log('resolve "%s"', resolved)
 
         // from node_modules
         if (!isAbsolute(requirePath) && !requirePath.startsWith('.')) {
           // eslint-disable-next-line global-require
-          return require(requirePath)
+          return require(resolved.indexOf('node_modules/') === -1 ? resolved : requirePath)
         }
 
         setDependency(filepath, requirePath = resolved)
