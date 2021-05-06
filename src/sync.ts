@@ -5,7 +5,7 @@ import { extname, isAbsolute } from 'path'
 import {
   clearDependency, getSync, setDependency, setSync,
 } from './cache'
-import { getTranspiler, resolvePath } from './common'
+import { getTranspiler, processors, resolvePath } from './common'
 
 const log = debug('src-to-module:sync')
 
@@ -37,6 +37,7 @@ function baseRun<T = void, C = any>(code: string, filepath: string, context?: C)
           resolved = require.resolve(requirePath)
         }
         log('resolve "%s"', resolved)
+        resolved = processors.reduce((r, f) => f(r), resolved)
 
         // from node_modules
         if (!isAbsolute(requirePath) && !requirePath.startsWith('.')) {

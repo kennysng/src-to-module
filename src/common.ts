@@ -48,3 +48,14 @@ export function registerTranspiler(transpiler: Transpiler) {
 export function getTranspiler(path: string) {
   return transpilers.find((t) => t.check(path))
 }
+
+// Registered path processors
+export const processors: ((value: string) => string)[] = []
+
+/**
+ * Register path processor
+ * @param {(value: string) => string} func
+ */
+export function registerProcessor(func: (value: string) => string) {
+  processors.push(func)
+}
