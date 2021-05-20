@@ -5,7 +5,9 @@ import { extname, isAbsolute } from 'path'
 import {
   clearDependency, getSync, setDependency, setSync,
 } from './cache'
-import { getTranspiler, processors, resolvePath } from './common'
+import {
+  getTranspiler, isFallbackRequire, processors, resolvePath,
+} from './common'
 
 const log = debug('src-to-module:sync')
 
@@ -30,14 +32,14 @@ function baseRun<T = void, C = any>(code: string, filepath: string, context?: C)
       apply(target: NodeRequire, thisArg: any, argArray: any[]) {
         let requirePath = argArray[0] as string
 
-        let resolved: string
+        let resolved = requirePath
         try {
           resolved = target.resolve(requirePath)
         } catch (e) {
-          resolved = require.resolve(requirePath)
+          if (isFallbackRequire()) resolved = require.resolve(requirePath)
         }
-        log('resolve "%s"', resolved)
-        resolved = processors.reduce((r, f) => f(r), resolved)
+        resolved = processors.reduce((r, f) => f(r, requirePath), resolved)
+        log('resolve "%s" -> "%s"', requirePath, resolved)
 
         // from node_modules
         if (!isAbsolute(requirePath) && !requirePath.startsWith('.')) {

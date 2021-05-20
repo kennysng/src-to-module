@@ -9,7 +9,7 @@ declare global {
 registerTranspiler(new JsonTranspiler())
 registerTranspiler(new JsTranspiler())
 
-export { registerTranspiler, registerProcessor } from './common'
+export { registerTranspiler, registerProcessor, enableFallbackRequire } from './common'
 export { Transpiler } from './interface'
 export { JsTranspiler } from './transpiler/js'
 export { JsonTranspiler } from './transpiler/json'

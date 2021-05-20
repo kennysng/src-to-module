@@ -2,6 +2,16 @@ import { Module } from 'module'
 import { extname, isAbsolute, resolve } from 'path'
 import { Transpiler } from './interface'
 
+let fallbackRequire = false
+
+export function enableFallbackRequire() {
+  fallbackRequire = true
+}
+
+export function isFallbackRequire() {
+  return fallbackRequire
+}
+
 // Registered transpilers
 const transpilers: Transpiler[] = []
 
@@ -50,12 +60,12 @@ export function getTranspiler(path: string) {
 }
 
 // Registered path processors
-export const processors: ((value: string) => string)[] = []
+export const processors: ((value: string, original: string) => string)[] = []
 
 /**
  * Register path processor
  * @param {(value: string) => string} func
  */
-export function registerProcessor(func: (value: string) => string) {
+export function registerProcessor(func: (value: string, original: string) => string) {
   processors.push(func)
 }
