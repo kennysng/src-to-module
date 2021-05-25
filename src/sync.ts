@@ -1,6 +1,6 @@
 import debug from 'debug'
 import { readFileSync, lstatSync } from 'fs'
-import { Module } from 'module'
+import { createRequire } from 'module'
 import { extname, isAbsolute } from 'path'
 import {
   clearDependency, getSync, setDependency, setSync,
@@ -28,7 +28,7 @@ function baseRun<T = void, C = any>(code: string, filepath: string, context?: C)
     code = transpiler.transpile(filepath, code)
 
     // run code
-    const newRequire = new Proxy(Module.createRequire(filepath), {
+    const newRequire = new Proxy(createRequire(filepath), {
       apply(target: NodeRequire, thisArg: any, argArray: any[]) {
         let requirePath = argArray[0] as string
 

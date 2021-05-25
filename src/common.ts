@@ -1,4 +1,4 @@
-import { Module } from 'module'
+import { createRequire } from 'module'
 import { extname, isAbsolute, resolve } from 'path'
 import { Transpiler } from './interface'
 
@@ -35,7 +35,7 @@ export function resolvePath(filepath: string): string {
 
   // resolve extension
   if (!extname(filepath)) {
-    const newRequire = Module.createRequire(filepath)
+    const newRequire = createRequire(filepath)
     filepath = newRequire.resolve(filepath)
   }
 

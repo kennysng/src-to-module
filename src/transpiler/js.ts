@@ -1,4 +1,4 @@
-import { Module } from 'module'
+import { wrap } from 'module'
 import { dirname, extname } from 'path'
 import { createContext, Script } from 'vm'
 import { isNullOrUndefined } from '../common'
@@ -24,7 +24,7 @@ export class JsTranspiler implements Transpiler {
    */
   public run<T>(path: string, code: string, require: NodeRequire, context: any = {}): T {
     // create sandbox
-    code = Module.wrap(code)
+    code = wrap(code)
     const { global: extraGlobal = {}, ...extraContext } = context
     context = {
       ...global, console, process, ...extraGlobal, ...extraContext,
@@ -62,7 +62,7 @@ export class JsTranspiler implements Transpiler {
    */
   public async runAsync<T>(path: string, code: string, require: NodeRequire, context: any = {}): Promise<T> {
     // create sandbox
-    code = `(async ${Module.wrap(code).substr(1)}`
+    code = `(async ${wrap(code).substr(1)}`
     const { global: extraGlobal = {}, ...extraContext } = context
     context = {
       ...global, console, process, ...extraGlobal, ...extraContext,
